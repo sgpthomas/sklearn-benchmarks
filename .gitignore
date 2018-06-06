@@ -65,6 +65,7 @@ target/
 *.tmp
 
 data/*
+pmlb-cache/*
 
 notebooks/figs/*
 notebooks/preprocessing_benchmark_subsets/*

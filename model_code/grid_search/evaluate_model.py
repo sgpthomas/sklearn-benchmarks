@@ -3,34 +3,40 @@ import itertools
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import cross_validate, StratifiedKFold
-from sklearn.metrics import accuracy_score, f1_score
+from sklearn.metrics import make_scorer
 from sklearn.pipeline import make_pipeline
 from tpot_metrics import balanced_accuracy_score
 import warnings
 from pmlb import fetch_data
+import os
+from pathlib import Path
 
 def map_dict(f, d):
     return { k: f(v) for k, v in d.items() }
 
-def evaluate_model(dataset, pipeline_components, pipeline_parameters, resultdir="."):
+def dict_safe_append(d, key, i):
+    if key not in d:
+        d[key] = [i]
+    else:
+        d[key].append(i)
+
+def evaluate_model(dataset, pipeline_components, pipeline_parameters,
+                   resultdir=".", use_params=True):
     # input_data = pd.read_csv(dataset, compression='gzip', sep='\t')
     input_data = fetch_data(dataset, local_cache_dir="../../pmlb-cache")
     features = input_data.drop('target', axis=1).values.astype(float)
     labels = input_data['target'].values
 
+    if not use_params:
+        pipeline_parameters = {}
+
     pipelines = [dict(zip(pipeline_parameters.keys(), list(parameter_combination)))
                  for parameter_combination in itertools.product(*pipeline_parameters.values())]
 
-    header_text = '\t'.join(["dataset", "classifier",
-                                 "parameters", "test_accuracy",
-                                 "train_accuracy", "test_f1_macro", "train_f1_macro"])
-    results_dict = { "dataset": [],
-                     "classifier": [],
-                     "parameters": [],
-                     "test_accuracy": [],
-                     "train_accuracy": [],
-                     "test_f1_macro": [],
-                     "train_f1_macro": [] }
+    results_dict = {}
+    classifier_class = pipeline_components[-1]
+    tmpfn = '{}/tmp--{}--{}.pkl'.format(resultdir, dataset, classifier_class.__name__)
+    Path(tmpfn).touch()
     with warnings.catch_warnings():
         # Squash warning messages. Turn this off when debugging!
         warnings.simplefilter('ignore')
@@ -45,9 +51,12 @@ def evaluate_model(dataset, pipeline_components, pipeline_parameters, resultdir=
                     pipeline.append(component())
 
             try:
+
                 clf = make_pipeline(*pipeline)
                 cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=90483257)
-                scoring = ['accuracy', 'f1_macro']
+                scoring = {'accuracy': 'accuracy',
+                           'f1_macro': 'f1_macro',
+                           'bal_accuracy': make_scorer(balanced_accuracy_score)}
                 validation = cross_validate(clf, features, labels, cv=cv, scoring=scoring)
                 avg = map_dict(lambda v: np.mean(v), validation)
                 # balanced_accuracy = balanced_accuracy_score(labels, cv_predictions)
@@ -58,30 +67,23 @@ def evaluate_model(dataset, pipeline_components, pipeline_parameters, resultdir=
             # except Exception as e:
             #     continue
 
-            classifier_class = pipeline_components[-1]
-            param_string = ','.join(['{}={}'.format(parameter, value)
-                                    for parameter, value in pipe_parameters[classifier_class].items()])
+            param_string = "default"
+            if use_params:
+                param_string = ','.join(['{}={}'.format(parameter, value)
+                                         for parameter, value in
+                                         pipe_parameters[classifier_class].items()])
 
-            out_text = '\t'.join([dataset,
-                                  classifier_class.__name__,
-                                  param_string,
-                                  str(avg['test_accuracy']),
-                                  str(avg['train_accuracy']),
-                                  str(avg['test_f1_macro']),
-                                  str(avg['train_f1_macro'])])
-            print(out_text)
-            sys.stdout.flush()
+            dict_safe_append(results_dict, 'dataset', dataset)
+            dict_safe_append(results_dict, 'classifier', classifier_class.__name__)
+            dict_safe_append(results_dict, 'parameters', param_string)
+            for key in avg.keys():
+                dict_safe_append(results_dict, key, avg[key])
 
-            results_dict["dataset"].append(dataset)
-            results_dict["classifier"].append(classifier_class.__name__)
-            results_dict["parameters"].append(param_string)
-            results_dict["test_accuracy"].append(avg["test_accuracy"])
-            results_dict["train_accuracy"].append(avg["test_accuracy"])
-            results_dict["test_f1_macro"].append(avg["test_f1_macro"])
-            results_dict["train_f1_macro"].append(avg["train_f1_macro"])
+            out_text = '\t'.join(map_dict(lambda v: str(v[-1]), results_dict).values())
+            print(out_text, flush=True)
 
-            fn = '{}/tmp-{}-{}.pkl'.format(resultdir, dataset, classifier_class.__name__)
-            pd.DataFrame(results_dict).to_pickle(fn)
+            pd.DataFrame(results_dict).to_pickle(tmpfn)
 
-        fn = '{}/final-{}-{}.pkl'.format(resultdir, dataset, classifier_class.__name__)
-        pd.DataFrame(results_dict).to_pickle(fn)
+        os.remove(tmpfn)
+        final_fn = '{}/final--{}--{}.pkl'.format(resultdir, dataset, classifier_class.__name__)
+        pd.DataFrame(results_dict).to_pickle(final_fn)

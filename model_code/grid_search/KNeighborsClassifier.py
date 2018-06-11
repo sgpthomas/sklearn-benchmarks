@@ -8,7 +8,7 @@ from evaluate_model import evaluate_model
 
 # dataset = sys.argv[1]
 
-def run(dataset, resultdir="."):
+def run(dataset, resultdir=".", use_params=True):
     pipeline_components = [RobustScaler, KNeighborsClassifier]
     pipeline_parameters = {}
 
@@ -20,4 +20,4 @@ def run(dataset, resultdir="."):
         [{'n_neighbors': n_neighbors, 'weights': weights}
         for (n_neighbors, weights) in all_param_combinations]
 
-    evaluate_model(dataset, pipeline_components, pipeline_parameters, resultdir=resultdir)
+    evaluate_model(dataset, pipeline_components, pipeline_parameters, resultdir=resultdir, use_params=use_params)

@@ -8,7 +8,7 @@ from evaluate_model import evaluate_model
 
 # dataset = sys.argv[1]
 
-def run(dataset, resultdir="."):
+def run(dataset, resultdir=".", use_params=True):
     pipeline_components = [RobustScaler, SGDClassifier]
     pipeline_parameters = {}
 
@@ -28,4 +28,4 @@ def run(dataset, resultdir="."):
         for (loss, penalty, alpha, learning_rate, fit_intercept, l1_ratio, eta0, power_t, random_state) in all_param_combinations
         if not (penalty != 'elasticnet' and l1_ratio != 0.15) and not (learning_rate not in ['constant', 'invscaling'] and eta0 != 0.0) and not (learning_rate != 'invscaling' and power_t != 0.5)]
 
-    evaluate_model(dataset, pipeline_components, pipeline_parameters, resultdir=resultdir)
+    evaluate_model(dataset, pipeline_components, pipeline_parameters, resultdir=resultdir, use_params=use_params)

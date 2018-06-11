@@ -8,7 +8,7 @@ from evaluate_model import evaluate_model
 
 # dataset = sys.argv[1]
 
-def run(dataset, resultdir="."):
+def run(dataset, resultdir=".", use_params=True):
     pipeline_components = [RobustScaler, SVC]
     pipeline_parameters = {}
 
@@ -25,4 +25,4 @@ def run(dataset, resultdir="."):
         for (C, gamma, kernel, degree, coef0, random_state) in all_param_combinations
         if not (kernel != 'poly' and degree > 2) and not (kernel not in ['poly', 'sigmoid'] and coef0 != 0.0)]
 
-    evaluate_model(dataset, pipeline_components, pipeline_parameters, resultdir=resultdir)
+    evaluate_model(dataset, pipeline_components, pipeline_parameters, resultdir=resultdir, use_params=use_params)

@@ -8,7 +8,7 @@ from evaluate_model import evaluate_model
 
 # dataset = sys.argv[1]
 
-def run(dataset, resultdir="."):
+def run(dataset, resultdir=".", use_params=True):
     pipeline_components = [RobustScaler, LogisticRegression]
     pipeline_parameters = {}
 
@@ -24,4 +24,4 @@ def run(dataset, resultdir="."):
         for (C, penalty, fit_intercept, dual, random_state) in all_param_combinations
         if not (penalty != 'l2' and dual != False)]
 
-    evaluate_model(dataset, pipeline_components, pipeline_parameters, resultdir=resultdir)
+    evaluate_model(dataset, pipeline_components, pipeline_parameters, resultdir=resultdir, use_params=use_params)

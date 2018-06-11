@@ -8,7 +8,7 @@ from evaluate_model import evaluate_model
 
 # dataset = sys.argv[1]
 
-def run(dataset, resultdir="."):
+def run(dataset, resultdir=".", use_params=True):
     pipeline_components = [MinMaxScaler, BernoulliNB]
     pipeline_parameters = {}
 
@@ -18,4 +18,4 @@ def run(dataset, resultdir="."):
     pipeline_parameters[BernoulliNB] = [{'alpha': args[0], 'fit_prior': args[1], 'binarize': args[2]}
                                         for args in itertools.product(alpha_values, fit_prior_values, binarize_values)]
 
-    evaluate_model(dataset, pipeline_components, pipeline_parameters, resultdir=resultdir)
+    evaluate_model(dataset, pipeline_components, pipeline_parameters, resultdir=resultdir, use_params=use_params)

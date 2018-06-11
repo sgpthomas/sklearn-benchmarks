@@ -8,7 +8,7 @@ from evaluate_model import evaluate_model
 
 # dataset = sys.argv[1]
 
-def run(dataset, resultdir="."):
+def run(dataset, resultdir=".", use_params=True):
     pipeline_components = [RobustScaler, XGBClassifier]
     pipeline_parameters = {}
 
@@ -24,4 +24,4 @@ def run(dataset, resultdir="."):
         [{'n_estimators': n_estimators, 'learning_rate': learning_rate, 'gamma': gamma, 'max_depth': max_depth, 'subsample': subsample, 'seed': random_state, 'nthread': 1}
         for (n_estimators, learning_rate, gamma, max_depth, subsample, random_state) in all_param_combinations]
 
-    evaluate_model(dataset, pipeline_components, pipeline_parameters, resultdir=resultdir)
+    evaluate_model(dataset, pipeline_components, pipeline_parameters, resultdir=resultdir, use_params=use_params)

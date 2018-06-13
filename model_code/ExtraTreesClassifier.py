@@ -23,7 +23,7 @@ def get_pipeline_parameters():
 
 def run(dataset, params, resultdir=".", use_params=True):
     pipeline_parameters = {}
-    if use_parms:
+    if use_params:
         pipeline_parameters[ExtraTreesClassifier] = params
 
     pipeline_components = [RobustScaler, ExtraTreesClassifier]

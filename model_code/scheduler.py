@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 
-
 import socket
 import argparse
 import trial_msg
 import itertools
-import glob
+from pathlib import Path
 import traceback
 import os
 import pandas as pd
 
 from pmlb import classification_dataset_names
+from todo import TodoList
 
 # s.listen(5)
 
@@ -56,7 +56,8 @@ classifier_functions = {
     "XGBClassifier": XGBClassifier # 30492
 }
 
-todos = []
+# todos = {}
+todos = TodoList()
 resultdir = "."
 count = 0
 total = 0
@@ -87,10 +88,8 @@ def make_parser():
 #     f = lambda s: tuple((s.split('/')[1]).split('--')[1:3])
 #     return list(map(f, map(rmext, files)))
 
-def commit_result(res):
-    global count
-    pd.DataFrame(res).to_pickle("{}/tmp-{}.pkl".format(resultdir, count))
-    count += 1
+def commit_result(res, ident):
+    pd.DataFrame(res).to_pickle("{}/tmp-{}.pkl".format(resultdir, ident))
 
 def start_server(port):
     s = socket.socket()
@@ -105,40 +104,49 @@ def stop_server(server):
 def send_msg(client, msg):
     client.send(trial_msg.serialize(msg))
 
-def handle_client(client, address):
+def handle_client(clients, key):
     try:
-        data = trial_msg.deserialize(client.recv(trial_msg.SIZE))
+        c = clients[key]
+        data = trial_msg.deserialize(c['client'].recv(trial_msg.SIZE))
+
+        # check if client has died
         if data == None:
-            print("Received 'None' from {}. Marked for removal!".format(address))
+            print("Received 'None' from {}. Marked for removal!".format(c['client'].getsockname()))
             return 1
+
+        # switch based on msg_type
         msg_type = data['msg_type']
         if msg_type == trial_msg.VERIFY:
-            send_msg(client, {'msg_type': trial_msg.SUCCESS})
+            send_msg(c['client'], {'msg_type': trial_msg.SUCCESS})
 
         elif msg_type == trial_msg.TRIAL_REQUEST:
-            dataset, method, params = todos.pop(0)
-            send_msg(client, {'msg_type': trial_msg.TRIAL_DETAILS,
-                              'dataset': dataset,
-                              'method': method,
-                              'params': params})
+            ident, task = todos.next()
+            dataset, method, params = task
+            c['task'] = ident
+            send_msg(c['client'], {'msg_type': trial_msg.TRIAL_DETAILS,
+                                   'dataset': dataset,
+                                   'method': method,
+                                   'params': params})
 
         elif msg_type == trial_msg.TRIAL_DONE:
-            print("{} finished!".format(address))
+            print("{} finished!".format(c['client'].getpeername()))
             size = data['size']
-            send_msg(client, {'msg_type': trial_msg.TRIAL_SEND})
-            trial_result = trial_msg.deserialize(client.recv(size))
-            commit_result(trial_result)
-            print("Commited {}/{}".format(count, total))
+            send_msg(c['client'], {'msg_type': trial_msg.TRIAL_SEND})
+            trial_result = trial_msg.deserialize(c['client'].recv(size))
+            commit_result(trial_result, c['task'])
+            todos.complete(c['task'])
+            print("Commited #{} (remaining: {})".format(c['task'], len(todos.remaining())))
+            c['task'] = None
 
         elif msg_type == trial_msg.TERMINATE:
             return 1
 
         else:
-            send_msg(client, {'msg_type': trial_msg.INVALID})
+            send_msg(c['client'], {'msg_type': trial_msg.INVALID})
     except socket.timeout:
         pass
     except Exception as e:
-        print("There was an exception while handling {}:{}".format(address[0], address[1]))
+        print("There was an exception while handling {}".format(c['client'].getsockname()))
         traceback.print_exc()
 
 if __name__ == "__main__":
@@ -152,6 +160,7 @@ if __name__ == "__main__":
 
     resultdir = options.resultdir
 
+    # gather todos
     print("Gathering todos...", end='', flush=True)
     if options.default:
         params = {key: [{}] for key in classifier_functions}
@@ -161,13 +170,15 @@ if __name__ == "__main__":
     for name in classification_dataset_names:
         for key in params:
             for x in params[key]:
-                todos.append((name, key, x))
+                todos.add((name, key, x))
+                # todos.append((name, key, x))
     if options.resume:
-        n = len(glob.glob("{}/*.pkl".format(resultdir)))
-        todos = todos[n:]
-        count = n
-    total = len(todos)
-    print("found {}!".format(total))
+        p = Path(resultdir)
+        ids = list(map(lambda s: int(s.stem.split('-')[1]), p.glob("tmp-*.pkl")))
+        for i in ids:
+            todos.complete(i)
+    total = todos.size()
+    print("found {} incomplete trials!".format(len(todos.remaining())))
 
     clients = {}
     s = start_server(options.port)
@@ -175,22 +186,27 @@ if __name__ == "__main__":
     print("Starting to listen...")
     s.listen(options.max_connections)
     while True:
-        to_remove = []
-        for k in clients:
-            # print("Polling {}".format(k))
-            if handle_client(clients[k], k) != None:
-                to_remove.append(k)
-        for item in to_remove:
-            print("Removing {}".format(item))
-            del clients[item]
         try:
+            to_remove = []
+            for k in clients:
+                if handle_client(clients, k) != None:
+                    to_remove.append(k)
+            for item in to_remove:
+                print("Removing {}".format(item))
+                if clients[item]['task'] != None:
+                    todos.abort(clients[item]['task'])
+                del clients[item]
+
             c, addr = s.accept()
             c.settimeout(1)
-            clients[addr] = c
+            clients[addr] = {'client': c, 'task': None}
             print("Connected to {}:{}!".format(addr[0], addr[1]))
         except socket.timeout:
             pass
         except KeyboardInterrupt:
             print("Shutting down server!")
+            print("Aborting progress on:")
+            for item in todos.in_progress():
+                print(" [-] {}".format(item))
             s.close()
             exit(0)

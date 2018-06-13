@@ -7,11 +7,7 @@ from sklearn.svm import SVC
 from evaluate_model import evaluate_model
 
 # dataset = sys.argv[1]
-
-def run(dataset, resultdir=".", use_params=True):
-    pipeline_components = [RobustScaler, SVC]
-    pipeline_parameters = {}
-
+def get_pipeline_parameters():
     C_values = [0.01, 0.1, 0.5, 1., 10., 50., 100.]
     gamma_values = [0.01, 0.1, 0.5, 1., 10., 50., 100., 'auto']
     kernel_values = ['poly', 'rbf', 'sigmoid']
@@ -20,9 +16,16 @@ def run(dataset, resultdir=".", use_params=True):
     random_state = [324089]
 
     all_param_combinations = itertools.product(C_values, gamma_values, kernel_values, degree_values, coef0_values, random_state)
-    pipeline_parameters[SVC] = \
+    pipeline_parameters = \
         [{'C': C, 'gamma': gamma, 'kernel': kernel, 'degree': degree, 'coef0': coef0, 'random_state': random_state}
         for (C, gamma, kernel, degree, coef0, random_state) in all_param_combinations
         if not (kernel != 'poly' and degree > 2) and not (kernel not in ['poly', 'sigmoid'] and coef0 != 0.0)]
+    return pipeline_parameters
 
-    evaluate_model(dataset, pipeline_components, pipeline_parameters, resultdir=resultdir, use_params=use_params)
+def run(dataset, params, resultdir=".", use_params=True):
+    pipeline_parameters = {}
+    if use_params:
+        pipeline_parameters[SVC] = params
+
+    pipeline_components = [RobustScaler, SVC]
+    return evaluate_model(dataset, pipeline_components, pipeline_parameters, resultdir=resultdir)

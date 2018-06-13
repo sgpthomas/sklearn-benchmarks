@@ -7,11 +7,7 @@ from xgboost import XGBClassifier # Assumes XGBoost v0.6
 from evaluate_model import evaluate_model
 
 # dataset = sys.argv[1]
-
-def run(dataset, resultdir=".", use_params=True):
-    pipeline_components = [RobustScaler, XGBClassifier]
-    pipeline_parameters = {}
-
+def get_pipeline_parameters():
     n_estimators_values = [10, 50, 100, 500]
     learning_rate_values = [0.01, 0.1, 0.5, 1.0, 10.0, 50.0, 100.0]
     gamma_values = np.arange(0., 0.51, 0.05)
@@ -20,8 +16,15 @@ def run(dataset, resultdir=".", use_params=True):
     random_state = [324089]
 
     all_param_combinations = itertools.product(n_estimators_values, learning_rate_values, gamma_values, max_depth_values, subsample_values, random_state)
-    pipeline_parameters[XGBClassifier] = \
+    pipeline_parameters = \
         [{'n_estimators': n_estimators, 'learning_rate': learning_rate, 'gamma': gamma, 'max_depth': max_depth, 'subsample': subsample, 'seed': random_state, 'nthread': 1}
         for (n_estimators, learning_rate, gamma, max_depth, subsample, random_state) in all_param_combinations]
+    return pipeline_parameters
 
-    evaluate_model(dataset, pipeline_components, pipeline_parameters, resultdir=resultdir, use_params=use_params)
+def run(dataset, params, resultdir=".", use_params=True):
+    pipeline_parameters = {}
+    if use_params:
+        pipeline_parameters[XGBClassifier] = params
+
+    pipeline_components = [RobustScaler, XGBClassifier]
+    return evaluate_model(dataset, pipeline_components, pipeline_parameters, resultdir=resultdir)

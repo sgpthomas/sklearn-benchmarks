@@ -8,10 +8,7 @@ from evaluate_model import evaluate_model
 
 # dataset = sys.argv[1]
 
-def run(dataset, resultdir=".", use_params=True):
-    pipeline_components = [RobustScaler, LogisticRegression]
-    pipeline_parameters = {}
-
+def get_pipeline_parameters():
     C_values = np.arange(0.5, 20.1, 0.5)
     penalty_values = ['l1', 'l2']
     fit_intercept_values = [True, False]
@@ -19,9 +16,17 @@ def run(dataset, resultdir=".", use_params=True):
     random_state = [324089]
 
     all_param_combinations = itertools.product(C_values, penalty_values, fit_intercept_values, dual_values, random_state)
-    pipeline_parameters[LogisticRegression] = \
+    pipeline_parameters = \
         [{'C': C, 'penalty': penalty, 'fit_intercept': fit_intercept, 'dual': dual, 'random_state': random_state}
         for (C, penalty, fit_intercept, dual, random_state) in all_param_combinations
         if not (penalty != 'l2' and dual != False)]
 
-    evaluate_model(dataset, pipeline_components, pipeline_parameters, resultdir=resultdir, use_params=use_params)
+    return pipeline_parameters
+
+def run(dataset, params, resultdir=".", use_params=True):
+    pipeline_parameters = {}
+    if use_params:
+        pipeline_parameters[LogisticRegression] = params
+
+    pipeline_components = [RobustScaler, LogisticRegression]
+    return evaluate_model(dataset, pipeline_components, pipeline_parameters, resultdir=resultdir)

@@ -20,70 +20,69 @@ def dict_safe_append(d, key, i):
     else:
         d[key].append(i)
 
-def evaluate_model(dataset, pipeline_components, pipeline_parameters,
-                   resultdir=".", use_params=True):
-    # input_data = pd.read_csv(dataset, compression='gzip', sep='\t')
-    input_data = fetch_data(dataset, local_cache_dir="../../pmlb-cache")
+def evaluate_model(dataset, pipeline_components, pipeline_parameters, resultdir="."):
+    input_data = fetch_data(dataset)
     features = input_data.drop('target', axis=1).values.astype(float)
     labels = input_data['target'].values
 
-    if not use_params:
-        pipeline_parameters = {}
-
-    pipelines = [dict(zip(pipeline_parameters.keys(), list(parameter_combination)))
-                 for parameter_combination in itertools.product(*pipeline_parameters.values())]
+    # pipelines = [dict(zip(pipeline_parameters.keys(), list(parameter_combination)))
+    #              for parameter_combination in itertools.product(*pipeline_parameters.values())]
+    # pipelines = pipeline_parameters
+    print(pipeline_parameters)
 
     results_dict = {}
     classifier_class = pipeline_components[-1]
-    tmpfn = '{}/tmp--{}--{}.pkl'.format(resultdir, dataset, classifier_class.__name__)
-    Path(tmpfn).touch()
+    # tmpfn = '{}/tmp--{}--{}.pkl'.format(resultdir, dataset, classifier_class.__name__)
+    # Path(tmpfn).touch()
     with warnings.catch_warnings():
         # Squash warning messages. Turn this off when debugging!
         warnings.simplefilter('ignore')
 
-        for pipe_parameters in pipelines:
-            pipeline = []
-            for component in pipeline_components:
-                if component in pipe_parameters:
-                    args = pipe_parameters[component]
-                    pipeline.append(component(**args))
-                else:
-                    pipeline.append(component())
+        # for pipe_parameters in pipelines:
+        pipeline = []
+        for component in pipeline_components:
+            # if component in pipe_parameters:
+            if component in pipeline_parameters:
+                args = pipeline_parameters[component]
+                pipeline.append(component(**args))
+            else:
+                pipeline.append(component())
 
-            try:
+        try:
 
-                clf = make_pipeline(*pipeline)
-                cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=90483257)
-                scoring = {'accuracy': 'accuracy',
-                           'f1_macro': 'f1_macro',
-                           'bal_accuracy': make_scorer(balanced_accuracy_score)}
-                validation = cross_validate(clf, features, labels, cv=cv, scoring=scoring)
-                avg = map_dict(lambda v: np.mean(v), validation)
-                # balanced_accuracy = balanced_accuracy_score(labels, cv_predictions)
-            except KeyboardInterrupt:
-                sys.exit(1)
-            # This is a catch-all to make sure that the evaluation won't crash due to a bad parameter
-            # combination or bad data. Turn this off when debugging!
-            # except Exception as e:
-            #     continue
+            clf = make_pipeline(*pipeline)
+            cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=90483257)
+            scoring = {'accuracy': 'accuracy',
+                        'f1_macro': 'f1_macro',
+                        'bal_accuracy': make_scorer(balanced_accuracy_score)}
+            validation = cross_validate(clf, features, labels, cv=cv, scoring=scoring)
+            avg = map_dict(lambda v: np.mean(v), validation)
+            # balanced_accuracy = balanced_accuracy_score(labels, cv_predictions)
+        except KeyboardInterrupt:
+            sys.exit(1)
+        # This is a catch-all to make sure that the evaluation won't crash due to a bad parameter
+        # combination or bad data. Turn this off when debugging!
+        # except Exception as e:
+        #     continue
 
-            param_string = "default"
-            if use_params:
-                param_string = ','.join(['{}={}'.format(parameter, value)
-                                         for parameter, value in
-                                         pipe_parameters[classifier_class].items()])
+        param_string = "default"
+        if pipeline_parameters != {}:
+            param_string = ','.join(['{}={}'.format(parameter, value)
+                                        for parameter, value in
+                                        pipeline_parameters[classifier_class].items()])
 
-            dict_safe_append(results_dict, 'dataset', dataset)
-            dict_safe_append(results_dict, 'classifier', classifier_class.__name__)
-            dict_safe_append(results_dict, 'parameters', param_string)
-            for key in avg.keys():
-                dict_safe_append(results_dict, key, avg[key])
+        dict_safe_append(results_dict, 'dataset', dataset)
+        dict_safe_append(results_dict, 'classifier', classifier_class.__name__)
+        dict_safe_append(results_dict, 'parameters', param_string)
+        for key in avg.keys():
+            dict_safe_append(results_dict, key, avg[key])
 
-            out_text = '\t'.join(map_dict(lambda v: str(v[-1]), results_dict).values())
-            print(out_text, flush=True)
+        # out_text = '\t'.join(map_dict(lambda v: str(v[-1]), results_dict).values())
+        # print(out_text, flush=True)
 
-            pd.DataFrame(results_dict).to_pickle(tmpfn)
+        # pd.DataFrame(results_dict).to_pickle(tmpfn)
 
-        os.remove(tmpfn)
-        final_fn = '{}/final--{}--{}.pkl'.format(resultdir, dataset, classifier_class.__name__)
-        pd.DataFrame(results_dict).to_pickle(final_fn)
+        # os.remove(tmpfn)
+        # final_fn = '{}/final--{}--{}.pkl'.format(resultdir, dataset, classifier_class.__name__)
+        # pd.DataFrame(results_dict).to_pickle(final_fn)
+        return results_dict

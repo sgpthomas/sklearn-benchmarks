@@ -49,6 +49,7 @@ def make_parser():
 
 def connect_to_server(host, port):
     s = socket.socket()
+    s.settimeout(20)
     s.connect((host, port))
     return s
 
@@ -94,7 +95,11 @@ if __name__ == "__main__":
     if options.host == None:
         options.host = socket.gethostname()
 
-    scheduler = connect_to_server(options.host, options.port)
+    try:
+        scheduler = connect_to_server(options.host, options.port)
+    except socket.timeout:
+        print("Connection timed out! Is the host correct?")
+        exit(-1)
     verify(scheduler)
 
     while True:

@@ -102,15 +102,16 @@ if __name__ == "__main__":
         exit(-1)
     verify(scheduler)
 
-    try:
-        while True:
+    while True:
+        try:
             dataset, method, params = get_trial(scheduler)
             res = classifier_functions[method].run(dataset, params)
             send_trial(scheduler, res)
+        except Exception:
+            print("Something broke! Skipping this trial on this client!")
+        finally:
             if not options.loop:
                 break
-    except Exception:
-        print("Something broke! Skipping this trial on this client!")
 
     terminate(scheduler)
     scheduler.close()

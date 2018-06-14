@@ -28,7 +28,6 @@ def evaluate_model(dataset, pipeline_components, pipeline_parameters, resultdir=
     # pipelines = [dict(zip(pipeline_parameters.keys(), list(parameter_combination)))
     #              for parameter_combination in itertools.product(*pipeline_parameters.values())]
     # pipelines = pipeline_parameters
-    print(pipeline_parameters)
 
     results_dict = {}
     classifier_class = pipeline_components[-1]

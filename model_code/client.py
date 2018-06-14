@@ -3,6 +3,7 @@
 import socket
 import argparse
 import trial_msg
+import traceback
 
 import AdaBoostClassifier
 import BernoulliNB
@@ -105,10 +106,12 @@ if __name__ == "__main__":
     while True:
         try:
             dataset, method, params = get_trial(scheduler)
+            print(dataset, method, params)
             res = classifier_functions[method].run(dataset, params)
             send_trial(scheduler, res)
-        except Exception:
+        except Exception as e:
             print("Something broke! Skipping this trial on this client!")
+            traceback.print_exc()
         finally:
             if not options.loop:
                 break

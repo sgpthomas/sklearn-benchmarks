@@ -127,6 +127,7 @@ def handle_client(clients, key):
                                    'dataset': dataset,
                                    'method': method,
                                    'params': params})
+            print("Handed out #{}: {} {} {}".format(ident, dataset, method, params))
 
         elif msg_type == trial_msg.TRIAL_DONE:
             print("{} finished!".format(c['client'].getpeername()))

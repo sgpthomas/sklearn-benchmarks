@@ -18,7 +18,9 @@ def merge_all(resultsdir):
     df = pd.DataFrame()
     for f in files:
         try:
-            df = pd.concat([df, pd.read_pickle(f)])
+            new = pd.read_pickle(f)
+            print("dataset: {}".format(new['dataset']))
+            df = pd.concat([df, new])
         except EOFError:
             print("Found empty file called {}!".format(f))
     return df.sort_values('dataset').reset_index(drop=True)

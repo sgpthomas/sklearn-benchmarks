@@ -17,7 +17,10 @@ def merge_all(resultsdir):
     files = glob.glob("{}/*.pkl".format(resultsdir))
     df = pd.DataFrame()
     for f in files:
-        df = pd.concat([df, pd.read_pickle(f)])
+        try:
+            df = pd.concat([df, pd.read_pickle(f)])
+        except EOFError:
+            print("Found empty file called {}!".format(f))
     return df.sort_values('dataset').reset_index(drop=True)
 
 if __name__ == "__main__":

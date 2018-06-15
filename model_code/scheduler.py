@@ -186,7 +186,7 @@ if __name__ == "__main__":
     s.settimeout(1)
     print("Starting to listen...")
     s.listen(options.max_connections)
-    while True:
+    while len(todo.remaining()) > 0:
         try:
             to_remove = []
             for k in clients:
@@ -211,3 +211,6 @@ if __name__ == "__main__":
                 print(" [-] {}".format(item))
             s.close()
             exit(0)
+    print("No more todos!")
+    for item in todos.in_progress():
+        print(" [-] {}".format(item))

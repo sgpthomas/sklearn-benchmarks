@@ -186,7 +186,7 @@ if __name__ == "__main__":
     s.settimeout(1)
     print("Starting to listen...")
     s.listen(options.max_connections)
-    while len(todos.remaining()) > 0:
+    while len(todos.complete()) != todos.size():
         try:
             to_remove = []
             for k in clients:

@@ -120,7 +120,15 @@ def handle_client(clients, key):
             send_msg(c['client'], {'msg_type': trial_msg.SUCCESS})
 
         elif msg_type == trial_msg.TRIAL_REQUEST:
-            ident, task = todos.next()
+            ident, task = None, None
+            item = todos.next()
+
+            if item == None:
+                print("No more trials!")
+                send_msg(c['client'], {'msg_type': trial_msg.TERMINATE})
+                return
+
+            ident, task = item
             dataset, method, params = task
             c['task'] = ident
             send_msg(c['client'], {'msg_type': trial_msg.TRIAL_DETAILS,

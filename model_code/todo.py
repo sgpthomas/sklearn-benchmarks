@@ -39,7 +39,7 @@ class TodoList(object):
         self._set_status(ident, TodoList.DONE)
 
     def size(self):
-        return self.count - 1
+        return self.count
 
     def remaining(self):
         return self._has_status(TodoList.UNDONE)

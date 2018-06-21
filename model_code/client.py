@@ -114,7 +114,7 @@ if __name__ == "__main__":
         try:
             p = multiprocessing.Process(target=lambda: run_trial(scheduler))
             p.start()
-            p.join(60)
+            p.join(300)
 
             if p.is_alive():
                 print("Trial timed out! Forcefully terminating!")

@@ -2,6 +2,7 @@ class TodoList(object):
     UNDONE = 0
     IN_PROGRESS = 1
     DONE = 2
+    CANCEL = 3
     def __init__(self):
         self.todos = {}
         self.count = 0
@@ -35,6 +36,9 @@ class TodoList(object):
     def abort(self, ident):
         self._set_status(ident, TodoList.UNDONE)
 
+    def cancel(self, ident):
+        self._set_status(ident, TodoList.CANCEL)
+
     def complete(self, ident):
         self._set_status(ident, TodoList.DONE)
 
@@ -49,4 +53,7 @@ class TodoList(object):
 
     def in_progress(self):
         return self._has_status(TodoList.IN_PROGRESS)
+
+    def cancelled(self):
+        return self._has_status(TodoList.CANCEL)
 

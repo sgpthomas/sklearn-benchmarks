@@ -115,11 +115,11 @@ if __name__ == "__main__":
         try:
             run_trial(scheduler)
         except timeout.TimeoutError:
-            send_msg(scheduler, {'msg_type': trial_msg.TRIAL_ABORT})
+            send_msg(scheduler, {'msg_type': trial_msg.TRIAL_CANCEL})
             expect_msg_type(scheduler, trial_msg.SUCCESS)
             print("Trial timed out!")
         except Exception as e:
-            send_msg(scheduler, {'msg_type': trial_msg.TRIAL_ABORT})
+            send_msg(scheduler, {'msg_type': trial_msg.TRIAL_CANCEL})
             expect_msg_type(scheduler, trial_msg.SUCCESS)
             print("Something broke! Skipping this trial on this client!")
             traceback.print_exc()

@@ -147,9 +147,9 @@ def handle_client(clients, key):
             print("Commited #{} (remaining: {})".format(c['task'], len(todos.remaining())))
             c['task'] = None
 
-        elif msg_type == trial_msg.TRIAL_ABORT:
+        elif msg_type == trial_msg.TRIAL_CANCEL:
             print("{} aborted!".format(c['client'].getpeername()))
-            todos.abort(c['task'])
+            todos.cancel(c['task'])
             send_msg(c['client'], {'msg_type': trial_msg.SUCCESS})
             print("Aborting #{} (remaining: {})".format(c['task'], len(todos.remaining())))
             c['task'] = None

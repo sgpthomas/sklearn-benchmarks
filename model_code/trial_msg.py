@@ -11,7 +11,7 @@ TERMINATE = "terminate"
 TRIAL_REQUEST = "request"
 TRIAL_DETAILS = "details"
 TRIAL_DONE = "done"
-TRIAL_ABORT = "abort"
+TRIAL_CANCEL = "cancel"
 TRIAL_SEND = "send"
 TRIAL_DATA = "data"
 

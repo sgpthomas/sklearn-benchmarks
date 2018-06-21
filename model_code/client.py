@@ -4,7 +4,7 @@ import socket
 import argparse
 import trial_msg
 import traceback
-import timeout
+import multiprocessing
 
 import AdaBoostClassifier
 import BernoulliNB
@@ -87,7 +87,6 @@ def send_trial(scheduler, res):
     expect_msg_type(scheduler, trial_msg.TRIAL_SEND)
     scheduler.send(packed)
 
-@timeout.timeout(300) # timeout after 5 mins
 def run_trial(scheduler):
     dataset, method, params = get_trial(scheduler)
     print(dataset, method, params)
@@ -113,11 +112,16 @@ if __name__ == "__main__":
 
     while True:
         try:
-            run_trial(scheduler)
-        except timeout.TimeoutError:
-            send_msg(scheduler, {'msg_type': trial_msg.TRIAL_CANCEL})
-            expect_msg_type(scheduler, trial_msg.SUCCESS)
-            print("Trial timed out!")
+            p = multiprocessing.Process(target=lambda: run_trial(scheduler))
+            p.start()
+            p.join(60)
+
+            if p.is_alive():
+                print("Trial timed out! Forcefully terminating!")
+                p.terminate()
+                p.join()
+                send_msg(scheduler, {'msg_type': trial_msg.TRIAL_CANCEL})
+                expect_msg_type(scheduler, trial_msg.SUCCESS)
         except KeyboardInterrupt:
             print("Stopping!")
             break

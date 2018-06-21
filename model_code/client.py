@@ -87,7 +87,7 @@ def send_trial(scheduler, res):
     expect_msg_type(scheduler, trial_msg.TRIAL_SEND)
     scheduler.send(packed)
 
-@timeout.timeout(60) # timeout after 5 mins
+@timeout.timeout(300) # timeout after 5 mins
 def run_trial(scheduler):
     dataset, method, params = get_trial(scheduler)
     print(dataset, method, params)
@@ -118,6 +118,9 @@ if __name__ == "__main__":
             send_msg(scheduler, {'msg_type': trial_msg.TRIAL_CANCEL})
             expect_msg_type(scheduler, trial_msg.SUCCESS)
             print("Trial timed out!")
+        except KeyboardInterrupt:
+            print("Stopping!")
+            break
         except Exception as e:
             send_msg(scheduler, {'msg_type': trial_msg.TRIAL_CANCEL})
             expect_msg_type(scheduler, trial_msg.SUCCESS)

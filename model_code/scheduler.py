@@ -158,6 +158,7 @@ def handle_client(clients, key):
             return 1
 
         else:
+            print("Unknown msg type: {}!".format(msg_type))
             send_msg(c['client'], {'msg_type': trial_msg.INVALID})
     except socket.timeout:
         pass

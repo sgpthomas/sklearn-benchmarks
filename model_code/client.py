@@ -4,6 +4,7 @@ import socket
 import argparse
 import trial_msg
 import traceback
+import timeout
 
 import AdaBoostClassifier
 import BernoulliNB
@@ -86,6 +87,13 @@ def send_trial(scheduler, res):
     expect_msg_type(scheduler, trial_msg.TRIAL_SEND)
     scheduler.send(packed)
 
+@timeout.timeout(60) # timeout after 5 mins
+def run_trial(scheduler):
+    dataset, method, params = get_trial(scheduler)
+    print(dataset, method, params)
+    res = classifier_functions[method].run(dataset, params)
+    send_trial(scheduler, res)
+
 def terminate(scheduler):
     msg = {'msg_type': trial_msg.TERMINATE}
     send_msg(scheduler, msg)
@@ -105,11 +113,14 @@ if __name__ == "__main__":
 
     while True:
         try:
-            dataset, method, params = get_trial(scheduler)
-            print(dataset, method, params)
-            res = classifier_functions[method].run(dataset, params)
-            send_trial(scheduler, res)
+            run_trial(scheduler)
+        except timeout.TimeoutError:
+            send_msg(scheduler, {'msg_type': trial_msg.TRIAL_ABORT})
+            expect_msg_type(scheduler, trial_msg.SUCCESS)
+            print("Trial timed out!")
         except Exception as e:
+            send_msg(scheduler, {'msg_type': trial_msg.TRIAL_ABORT})
+            expect_msg_type(scheduler, trial_msg.SUCCESS)
             print("Something broke! Skipping this trial on this client!")
             traceback.print_exc()
         finally:

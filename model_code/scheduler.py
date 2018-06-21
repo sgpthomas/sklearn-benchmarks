@@ -147,6 +147,13 @@ def handle_client(clients, key):
             print("Commited #{} (remaining: {})".format(c['task'], len(todos.remaining())))
             c['task'] = None
 
+        elif msg_type == trial_msg.TRIAL_ABORT:
+            print("{} aborted!".format(c['client'].getpeername()))
+            todos.abort(c['task'])
+            send_msg(c['client'], {'msg_type': trial_msg.SUCCESS})
+            print("Aborting #{} (remaining: {})".format(c['task'], len(todos.remaining())))
+            c['task'] = None
+
         elif msg_type == trial_msg.TERMINATE:
             return 1
 
@@ -180,12 +187,13 @@ if __name__ == "__main__":
         for key in params:
             for x in params[key]:
                 todos.add((name, key, x))
-                # todos.append((name, key, x))
+
     if options.resume:
         p = Path(resultdir)
         ids = list(map(lambda s: int(s.stem.split('-')[1]), p.glob("tmp-*.pkl")))
         for i in ids:
             todos.complete(i)
+
     total = todos.size()
     print("found {} incomplete trials!".format(len(todos.remaining())))
 

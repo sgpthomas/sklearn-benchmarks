@@ -14,6 +14,22 @@ from pathlib import Path
 def map_dict(f, d):
     return { k: f(v) for k, v in d.items() }
 
+def map2_dict(f, d):
+    res = {}
+    for k, v in d.items():
+        tup = f(k, v)
+        res[tup[0]] = tup[1]
+    return res
+
+def merge_dicts(d1, d2):
+    if d1 == {}:
+        return d2
+    if d1.keys() != d2.keys():
+        raise Exception("Keys must match: {} != {}".format(d1.keys(), d2.keys()))
+    for k in d1:
+        d1[k] += d2[k]
+    return d1
+
 def dict_safe_append(d, key, i):
     if key not in d:
         d[key] = [i]
@@ -55,7 +71,8 @@ def evaluate_model(dataset, pipeline_components, pipeline_parameters, resultdir=
                         'f1_macro': 'f1_macro',
                         'bal_accuracy': make_scorer(balanced_accuracy_score)}
             validation = cross_validate(clf, features, labels, cv=cv, scoring=scoring)
-            avg = map_dict(lambda v: np.mean(v), validation)
+            avg = map2_dict(lambda k, v: ("avg_{}".format(k), np.mean(v)), validation)
+            stddev = map2_dict(lambda k, v: ("std_{}".format(k), np.std(v)), validiation)
             # balanced_accuracy = balanced_accuracy_score(labels, cv_predictions)
         except KeyboardInterrupt:
             sys.exit(1)
@@ -73,7 +90,7 @@ def evaluate_model(dataset, pipeline_components, pipeline_parameters, resultdir=
         dict_safe_append(results_dict, 'dataset', dataset)
         dict_safe_append(results_dict, 'classifier', classifier_class.__name__)
         dict_safe_append(results_dict, 'parameters', param_string)
-        for key in avg.keys():
+        for key in merge_dicts(avg, stddev).keys():
             dict_safe_append(results_dict, key, avg[key])
 
         # out_text = '\t'.join(map_dict(lambda v: str(v[-1]), results_dict).values())
